@@ -41,13 +41,13 @@ supolicy --live "allow shell proc_cpuinfo:file {mounton}"
 supolicy --live "allow shell dalvikcache_data_file:file {write}"
 */
 public class ZenfoneISOSelector extends AppCompatActivity {
-    //id for DirectoryChooser Activity
-    int REQUEST_DIRECTORY = 8324;
-    //Original cdrom file path on Asus Zenfone 2
-    String originalCdrom= "/system/etc/cdrom_install.iso";
+    // id for DirectoryChooser Activity
+    private final int REQUEST_DIRECTORY = 8324;
+    // Original cdrom file path on Asus Zenfone 2
+    private final String ORIGINAL_CDROM = "/system/etc/cdrom_install.iso";
 
     @Override
-    public void onBackPressed(){
+    public void onBackPressed() {
         super.onBackPressed();
         finish();
     }
@@ -58,10 +58,9 @@ public class ZenfoneISOSelector extends AppCompatActivity {
         setContentView(R.layout.activity_zenfone_isoselector);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        if (!Shell.SU.available()){
+        if (!Shell.SU.available()) {
             Toast.makeText(getApplicationContext(), "SU is not available, please root your phone.", Toast.LENGTH_LONG).show();
         }
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         if (fab != null) {
             fab.setOnClickListener(new View.OnClickListener() {
@@ -69,27 +68,24 @@ public class ZenfoneISOSelector extends AppCompatActivity {
                 public void onClick(View view) {
                     Snackbar.make(view, getResources().getString(R.string.reset_default), Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
-                    applyNewImage(originalCdrom);
+                    applyNewImage(ORIGINAL_CDROM);
                 }
             });
         }
-
-        ListView listView1 = (ListView) findViewById(R.id.listView);
-        if (listView1 != null) {
-            listView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                public void onItemClick(AdapterView<?> parent, View view,
-                                        int position, long id) {
+        ListView listView = (ListView)findViewById(R.id.listView);
+        if (listView != null) {
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     String product = ((TextView) view).getText().toString();
                     applyNewImage(product);
                 }
             });
         }
-        SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector",0);
-        String directory = sharedPref.getString("directory","");
-        if (!directory.equals("")){
+        SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector", 0);
+        String directory = sharedPref.getString("directory", "");
+        if (!directory.equals("")) {
             fillData(directory);
-        }
-        else{
+        } else {
             fillData(Environment.getExternalStorageDirectory().getPath());
         }
     }
@@ -106,8 +102,8 @@ public class ZenfoneISOSelector extends AppCompatActivity {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             final Intent chooserIntent = new Intent(this, DirectoryChooserActivity.class);
-            SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector",0);
-            String directory = sharedPref.getString("directory","");
+            SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector", 0);
+            String directory = sharedPref.getString("directory", "");
             final DirectoryChooserConfig config = DirectoryChooserConfig.builder()
                     .newDirectoryName("New folder")
                     .allowReadOnlyDirectory(true)
@@ -119,58 +115,57 @@ public class ZenfoneISOSelector extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent resultData){
+    public void onActivityResult(int requestCode, int resultCode, Intent resultData) {
         if (requestCode == REQUEST_DIRECTORY) {
             if (resultCode == DirectoryChooserActivity.RESULT_CODE_DIR_SELECTED) {
                 SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector", 0);
                 SharedPreferences.Editor editor = sharedPref.edit();
-                editor.putString("directory",resultData.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
+                editor.putString("directory", resultData.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
                 editor.apply();
                 fillData(resultData.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
             }
         }
-        super.onActivityResult(requestCode,resultCode,resultData);
+        super.onActivityResult(requestCode, resultCode, resultData);
     }
-    public void applyNewImage(String path){
+
+    public void applyNewImage(String path) {
         (new SUTask()).execute(path);
     }
-    public void fillData(String directory){
+
+    public void fillData(String directory) {
         File dir = new File(directory);
         File[] filelist = dir.listFiles();
         if (filelist != null) {
             ArrayList<String> ListOfFileNames = new ArrayList<>();
-            for (File file : filelist)
-            {
+            for (File file : filelist) {
                 if (MimeTypeMap.getFileExtensionFromUrl(file.getName().toLowerCase()).equals("iso")) {
                     ListOfFileNames.add(file.getPath());
                 }
             }
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, ListOfFileNames);
-            ListView listView1 = (ListView) findViewById(R.id.listView);
-            if (listView1 != null) {
-                listView1.setAdapter(adapter);
+            ListView listView = (ListView)findViewById(R.id.listView);
+            if (listView != null) {
+                listView.setAdapter(adapter);
             }
-
         } else {
-            ListView listView1 = (ListView) findViewById(R.id.listView);
-            if (listView1 != null) {
-                listView1.setAdapter(null);
+            ListView listView = (ListView)findViewById(R.id.listView);
+            if (listView != null) {
+                listView.setAdapter(null);
             }
         }
     }
+
     private class SUTask extends AsyncTask<String, Void, Void> {
         @Override
         protected Void doInBackground(String... path) {
-            // this method is executed in a background thread
-            // no problem calling su here
-
             Shell.SU.run("mount -o remount,rw /system");
-            //Let's clear current cdrom settings
+            // Let's clear current cdrom settings
             Shell.SU.run("sed -i -e 's#cdromname=.*#cdromname=\"NotExisting\"#g' /system/etc/init.cdrom.sh");
             Shell.SU.run("sh /system/etc/init.cdrom.sh");
-            //And apply new one.
-            Shell.SU.run("sed -i -e 's#cdromname=.*#cdromname=\""+path[0]+"\"#g' /system/etc/init.cdrom.sh");
+            // And apply new one.
+            Shell.SU.run("sed -i -e 's#cdromname=.*#cdromname=\"" + path[0] + "\"#g' /system/etc/init.cdrom.sh");
             Shell.SU.run("sh /system/etc/init.cdrom.sh");
             Shell.SU.run("mount -o remount,ro /system");
             return null;
