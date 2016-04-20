@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Zenfone ISO Selector</string>
+    <string name="action_settings">Choose folder</string>
+    <string name="reset_default">Default ZenUI iso image restored</string>
+</resources>
