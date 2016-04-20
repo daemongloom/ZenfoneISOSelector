@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -39,7 +40,6 @@ supolicy --live "allow init system_file:file {rename append}"
 supolicy --live "allow shell proc_cpuinfo:file {mounton}"
 supolicy --live "allow shell dalvikcache_data_file:file {write}"
 */
-@SuppressWarnings("ALL")
 public class ZenfoneISOSelector extends AppCompatActivity {
     //id for DirectoryChooser Activity
     int REQUEST_DIRECTORY = 8324;
@@ -60,33 +60,37 @@ public class ZenfoneISOSelector extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (!Shell.SU.available()){
             Toast.makeText(getApplicationContext(), "SU is not available, please root your phone.", Toast.LENGTH_LONG).show();
-        };
+        }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, getResources().getString(R.string.reset_default), Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                applyNewImage(originalCdrom);
-            }
-        });
+        if (fab != null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Snackbar.make(view, getResources().getString(R.string.reset_default), Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    applyNewImage(originalCdrom);
+                }
+            });
+        }
 
         ListView listView1 = (ListView) findViewById(R.id.listView);
-        listView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                String product = ((TextView) view).getText().toString();
-                applyNewImage(product);
-            }
-        });
+        if (listView1 != null) {
+            listView1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent, View view,
+                                        int position, long id) {
+                    String product = ((TextView) view).getText().toString();
+                    applyNewImage(product);
+                }
+            });
+        }
         SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector",0);
         String directory = sharedPref.getString("directory","");
-        if (directory != ""){
+        if (!directory.equals("")){
             fillData(directory);
         }
         else{
-            fillData("/sdcard/");
+            fillData(Environment.getExternalStorageDirectory().getPath());
         }
     }
 
@@ -122,7 +126,7 @@ public class ZenfoneISOSelector extends AppCompatActivity {
                 SharedPreferences sharedPref = getSharedPreferences("zenfoneisoselector", 0);
                 SharedPreferences.Editor editor = sharedPref.edit();
                 editor.putString("directory",resultData.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
-                editor.commit();
+                editor.apply();
                 fillData(resultData.getStringExtra(DirectoryChooserActivity.RESULT_SELECTED_DIR));
             }
         }
@@ -135,21 +139,24 @@ public class ZenfoneISOSelector extends AppCompatActivity {
         File dir = new File(directory);
         File[] filelist = dir.listFiles();
         if (filelist != null) {
-            ArrayList<String> ListOfFileNames = new ArrayList<String>();
+            ArrayList<String> ListOfFileNames = new ArrayList<>();
             for (File file : filelist)
             {
                 if (MimeTypeMap.getFileExtensionFromUrl(file.getName().toLowerCase()).equals("iso")) {
-                    //ListOfFileNames.add(file.getName());
                     ListOfFileNames.add(file.getPath());
                 }
             }
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, ListOfFileNames);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, ListOfFileNames);
             ListView listView1 = (ListView) findViewById(R.id.listView);
-            listView1.setAdapter(adapter);
+            if (listView1 != null) {
+                listView1.setAdapter(adapter);
+            }
 
         } else {
             ListView listView1 = (ListView) findViewById(R.id.listView);
-            listView1.setAdapter(null);
+            if (listView1 != null) {
+                listView1.setAdapter(null);
+            }
         }
     }
     private class SUTask extends AsyncTask<String, Void, Void> {
